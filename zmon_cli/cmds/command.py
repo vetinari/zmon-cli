@@ -27,14 +27,14 @@ pretty_json = click.option('--pretty', is_flag=True,
                            help='Pretty print JSON output. Ignored if output format is not JSON')
 
 
-def print_version(ctx, param, value):
+def print_version(ctx: click.Context, param: click.Parameter, value: str) -> None:
     if not value or ctx.resilient_parsing:
         return
     click.echo('ZMON CLI {}'.format(__version__))
     ctx.exit()
 
 
-def get_client(config):
+def get_client(config: dict) -> Zmon:
     verify = config.get('verify', True)
 
     if 'user' in config and 'password' in config:
@@ -54,14 +54,14 @@ def get_client(config):
 @click.option('-v', '--verbose', help='Verbose logging', is_flag=True)
 @click.option('-V', '--version', is_flag=True, callback=print_version, expose_value=False, is_eager=True)
 @click.pass_context
-def cli(ctx, config_file, verbose):
+def cli(ctx: click.Context, config_file: str, verbose: bool) -> None:
     """
     ZMON command line interface
     """
     configure_logging(logging.DEBUG if verbose else logging.INFO)
 
     fn = os.path.expanduser(config_file)
-    config = {}
+    config = {}  # type: dict
 
     if os.path.exists(fn):
         config = get_config_data(config_file)
@@ -72,7 +72,7 @@ def cli(ctx, config_file, verbose):
 @cli.command()
 @click.option('-c', '--config-file', help='Use alternative config file', default=DEFAULT_CONFIG_FILE, metavar='PATH')
 @click.pass_obj
-def configure(obj, config_file):
+def configure(obj: EasyDict, config_file: str) -> None:
     """Configure ZMON URL and credentials"""
     set_config_file(config_file, obj.config.get('url'))
 
@@ -81,7 +81,7 @@ def configure(obj, config_file):
 @click.pass_obj
 @output_option
 @pretty_json
-def status(obj, output, pretty):
+def status(obj: EasyDict, output: str, pretty: bool) -> None:
     """Check ZMON system status"""
     client = get_client(obj.config)
 

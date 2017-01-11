@@ -5,7 +5,9 @@ import functools
 import re
 
 from datetime import datetime
-from urllib.parse import urljoin, urlsplit, urlunsplit, SplitResult
+from urllib.parse import urljoin, urlsplit, urlunsplit
+
+from typing import Callable, Optional, Iterable, Union, Any, List
 
 import requests
 
@@ -45,14 +47,14 @@ invalid_entity_id_re = re.compile('[^a-zA-Z0-9-@_.\[\]\:]+')
 
 
 class JSONDateEncoder(json.JSONEncoder):
-    def default(self, obj):
+    def default(self, obj: object) -> Union[str, int]:
         return obj.isoformat() if isinstance(obj, datetime) else super().default(obj)
 
 
 class ZmonError(Exception):
     """ZMON client error."""
 
-    def __init__(self, message=''):
+    def __init__(self, message: str='') -> None:
         super().__init__('ZMON client error: {}'.format(message))
 
 
@@ -61,9 +63,9 @@ class ZmonArgumentError(ZmonError):
     pass
 
 
-def logged(f):
+def logged(f: Callable) -> Callable:
     @functools.wraps(f)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         try:
             return f(*args, **kwargs)
         except:
@@ -73,7 +75,7 @@ def logged(f):
     return wrapper
 
 
-def compare_entities(e1, e2):
+def compare_entities(e1: dict, e2: dict) -> bool:
     try:
         e1_copy = e1.copy()
         e1_copy.pop('last_modified', None)
@@ -89,7 +91,7 @@ def compare_entities(e1, e2):
         return False
 
 
-def get_valid_entity_id(e):
+def get_valid_entity_id(e: str) -> str:
     return invalid_entity_id_re.sub('-', parentheses_re.sub(lambda m: '[' if '(' in m.group() else ']', e.lower()))
 
 
@@ -119,17 +121,16 @@ class Zmon:
     """
 
     def __init__(
-            self, url, token=None, username=None, password=None, timeout=10, verify=True, user_agent=ZMON_USER_AGENT):
+            self, url: str, token: Optional[str]=None, username: Optional[str]=None, password: Optional[str]=None,
+            timeout: Optional[int]=10, verify: Optional[bool]=True, user_agent: Optional[str]=ZMON_USER_AGENT) -> None:
         """Initialize ZMON client."""
-        self.timeout = timeout
-
         split = urlsplit(url)
-        self.base_url = urlunsplit(SplitResult(split.scheme, split.netloc, '', '', ''))
+        self.base_url = urlunsplit((split.scheme, split.netloc, '', '', ''))
         self.url = urljoin(self.base_url, self._join_path(['api', API_VERSION, '']))
 
         self._session = requests.Session()
 
-        self._session.timeout = timeout
+        self._timeout = timeout
         self.user_agent = user_agent
 
         if username and password and token is None:
@@ -146,15 +147,15 @@ class Zmon:
             self._session.verify = False
 
     @property
-    def session(self):
+    def session(self) -> requests.Session:
         return self._session
 
     @staticmethod
-    def is_valid_entity_id(entity_id):
-        return invalid_entity_id_re.search(entity_id) is None
+    def is_valid_entity_id(entity_id: str) -> bool:
+        return invalid_entity_id_re.search(str(entity_id)) is None
 
     @staticmethod
-    def validate_check_command(src):
+    def validate_check_command(src: str) -> None:
         """
         Validates if ``check command`` is valid syntax. Raises exception in case of invalid syntax.
 
@@ -168,10 +169,11 @@ class Zmon:
         except Exception as e:
             raise ZmonError('Invalid check command: {}'.format(e))
 
-    def _join_path(self, parts):
+    def _join_path(self, parts: Iterable[Union[str, int]]) -> str:
         return '/'.join(str(p).strip('/') for p in parts)
 
-    def endpoint(self, *args, trailing_slash=True, base_url=None):
+    def endpoint(
+            self, *args: Union[str, int], trailing_slash: Optional[bool]=True, base_url: Optional[str]=None) -> str:
         parts = list(args)
 
         # Ensure trailing slash!
@@ -182,7 +184,7 @@ class Zmon:
 
         return urljoin(url, self._join_path(parts))
 
-    def json(self, resp):
+    def json(self, resp: requests.Response):
         resp.raise_for_status()
 
         return resp.json()
@@ -259,7 +261,7 @@ class Zmon:
         :return: ZMON status.
         :rtype: dict
         """
-        resp = self.session.get(self.endpoint(STATUS))
+        resp = self.session.get(self.endpoint(STATUS), timeout=self._timeout)
 
         return self.json(resp)
 
@@ -268,7 +270,7 @@ class Zmon:
 ########################################################################################################################
 
     @logged
-    def get_entities(self, query=None) -> list:
+    def get_entities(self, query: Optional[str]=None) -> List[dict]:
         """
         Get ZMON entities, with optional filtering.
 
@@ -284,12 +286,12 @@ class Zmon:
 
         params = {'query': query_str} if query else None
 
-        resp = self.session.get(self.endpoint(ENTITIES), params=params)
+        resp = self.session.get(self.endpoint(ENTITIES), params=params, timeout=self._timeout)
 
         return self.json(resp)
 
     @logged
-    def get_entity(self, entity_id: str) -> str:
+    def get_entity(self, entity_id: str) -> dict:
         """
         Retrieve single entity.
 
@@ -301,7 +303,7 @@ class Zmon:
         """
         logger.debug('Retrieving entities with id: {} ...'.format(entity_id))
 
-        resp = self.session.get(self.endpoint(ENTITIES, entity_id, trailing_slash=False))
+        resp = self.session.get(self.endpoint(ENTITIES, entity_id, trailing_slash=False), timeout=self._timeout)
         return self.json(resp)
 
     @logged
@@ -322,12 +324,12 @@ class Zmon:
         if 'id' not in entity or 'type' not in entity:
             raise ZmonArgumentError('Entity "id" and "type" are required.')
 
-        if not self.is_valid_entity_id(entity['id']):
+        if not self.is_valid_entity_id(str(entity['id'])):
             raise ZmonArgumentError('Invalid entity ID.')
 
         logger.debug('Adding new entity: {} ...'.format(entity['id']))
 
-        resp = self.session.put(self.endpoint(ENTITIES, trailing_slash=False), json=entity)
+        resp = self.session.put(self.endpoint(ENTITIES, trailing_slash=False), json=entity, timeout=self._timeout)
 
         resp.raise_for_status()
 
@@ -350,7 +352,7 @@ class Zmon:
         """
         logger.debug('Removing existing entity: {} ...'.format(entity_id))
 
-        resp = self.session.delete(self.endpoint(ENTITIES, entity_id))
+        resp = self.session.delete(self.endpoint(ENTITIES, entity_id), timeout=self._timeout)
 
         resp.raise_for_status()
 
@@ -371,7 +373,7 @@ class Zmon:
         :return: Dashboard dict.
         :rtype: dict
         """
-        resp = self.session.get(self.endpoint(DASHBOARD, dashboard_id))
+        resp = self.session.get(self.endpoint(DASHBOARD, dashboard_id), timeout=self._timeout)
 
         return self.json(resp)
 
@@ -391,11 +393,11 @@ class Zmon:
         if 'id' in dashboard and dashboard['id']:
             logger.debug('Updating dashboard with ID: {} ...'.format(dashboard['id']))
 
-            resp = self.session.post(self.endpoint(DASHBOARD, dashboard['id']), json=dashboard)
+            resp = self.session.post(self.endpoint(DASHBOARD, dashboard['id']), json=dashboard, timeout=self._timeout)
         else:
             # new dashboard
             logger.debug('Adding new dashboard ...')
-            resp = self.session.post(self.endpoint(DASHBOARD), json=dashboard)
+            resp = self.session.post(self.endpoint(DASHBOARD), json=dashboard, timeout=self._timeout)
 
         resp.raise_for_status()
 
@@ -416,7 +418,7 @@ class Zmon:
         :return: Check definition dict.
         :rtype: dict
         """
-        resp = self.session.get(self.endpoint(CHECK_DEF, definition_id))
+        resp = self.session.get(self.endpoint(CHECK_DEF, definition_id), timeout=self._timeout)
 
         # TODO: total hack! API returns 200 if check def does not exist!
         if resp.text == '':
@@ -426,14 +428,14 @@ class Zmon:
         return self.json(resp)
 
     @logged
-    def get_check_definitions(self) -> list:
+    def get_check_definitions(self) -> List[dict]:
         """
         Return list of all ``active`` check definitions.
 
         :return: List of check-defs.
         :rtype: list
         """
-        resp = self.session.get(self.endpoint(ACTIVE_CHECK_DEF))
+        resp = self.session.get(self.endpoint(ACTIVE_CHECK_DEF), timeout=self._timeout)
 
         return self.json(resp).get('check_definitions')
 
@@ -456,9 +458,9 @@ class Zmon:
         if 'status' not in check_definition:
             check_definition['status'] = 'ACTIVE'
 
-        self.validate_check_command(check_definition['command'])
+        self.validate_check_command(str(check_definition['command']))
 
-        resp = self.session.post(self.endpoint(CHECK_DEF), json=check_definition)
+        resp = self.session.post(self.endpoint(CHECK_DEF), json=check_definition, timeout=self._timeout)
 
         return self.json(resp)
 
@@ -473,7 +475,7 @@ class Zmon:
         :return: HTTP response.
         :rtype: :class:`requests.Response`
         """
-        resp = self.session.delete(self.endpoint(CHECK_DEF, check_definition_id))
+        resp = self.session.delete(self.endpoint(CHECK_DEF, check_definition_id), timeout=self._timeout)
 
         resp.raise_for_status()
 
@@ -494,19 +496,19 @@ class Zmon:
         :return: Alert definition dict.
         :rtype: dict
         """
-        resp = self.session.get(self.endpoint(ALERT_DEF, alert_id))
+        resp = self.session.get(self.endpoint(ALERT_DEF, alert_id), timeout=self._timeout)
 
         return self.json(resp)
 
     @logged
-    def get_alert_definitions(self) -> list:
+    def get_alert_definitions(self) -> List[dict]:
         """
         Return list of all ``active`` alert definitions.
 
         :return: List of alert-defs.
         :rtype: list
         """
-        resp = self.session.get(self.endpoint(ACTIVE_ALERT_DEF))
+        resp = self.session.get(self.endpoint(ACTIVE_ALERT_DEF), timeout=self._timeout)
 
         return self.json(resp).get('alert_definitions')
 
@@ -533,7 +535,7 @@ class Zmon:
         if 'check_definition_id' not in alert_definition:
             raise ZmonArgumentError('Alert defintion must have "check_definition_id"')
 
-        resp = self.session.post(self.endpoint(ALERT_DEF), json=alert_definition)
+        resp = self.session.post(self.endpoint(ALERT_DEF), json=alert_definition, timeout=self._timeout)
 
         return self.json(resp)
 
@@ -564,7 +566,7 @@ class Zmon:
             alert_definition['status'] = 'ACTIVE'
 
         resp = self.session.put(
-            self.endpoint(ALERT_DEF, alert_definition['id']), json=alert_definition)
+            self.endpoint(ALERT_DEF, alert_definition['id']), json=alert_definition, timeout=self._timeout)
 
         return self.json(resp)
 
@@ -579,7 +581,7 @@ class Zmon:
         :return: Alert definition dict.
         :rtype: dict
         """
-        resp = self.session.delete(self.endpoint(ALERT_DEF, alert_definition_id))
+        resp = self.session.delete(self.endpoint(ALERT_DEF, alert_definition_id), timeout=self._timeout)
 
         return self.json(resp)
 
@@ -606,7 +608,7 @@ class Zmon:
                 "entity-id-3": 100
             }
         """
-        resp = self.session.get(self.endpoint(ALERT_DATA, alert_id, 'all-entities'))
+        resp = self.session.get(self.endpoint(ALERT_DATA, alert_id, 'all-entities'), timeout=self._timeout)
 
         return self.json(resp)
 
@@ -615,7 +617,7 @@ class Zmon:
 ########################################################################################################################
 
     @logged
-    def search(self, q, teams: list=None) -> dict:
+    def search(self, q: str, teams: Iterable[str]=None) -> dict:
         """
         Search ZMON dashboards, checks, alerts and grafana dashboards with optional team filtering.
 
@@ -639,9 +641,6 @@ class Zmon:
                 "grafana_dashboards": [{"id": "123", "title": "ZMON grafana", "team": ""}],
             }
         """
-        if not q:
-            raise ZmonArgumentError('No search query value!')
-
         if teams and type(teams) not in (list, tuple):
             raise ZmonArgumentError('"teams" should be a list!')
 
@@ -649,7 +648,7 @@ class Zmon:
         if teams:
             params['teams'] = ','.join(teams)
 
-        resp = self.session.get(self.endpoint(SEARCH), params=params)
+        resp = self.session.get(self.endpoint(SEARCH), params=params, timeout=self._timeout)
 
         return self.json(resp)
 
@@ -659,7 +658,7 @@ class Zmon:
 ########################################################################################################################
 
     @logged
-    def list_onetime_tokens(self) -> list:
+    def list_onetime_tokens(self) -> List[dict]:
         """
         List exisitng one-time tokens.
 
@@ -676,7 +675,7 @@ class Zmon:
               created: 2016-08-26 12:51:13.506000
               token: 9pSzKpcO
         """
-        resp = self.session.get(self.endpoint(TOKENS))
+        resp = self.session.get(self.endpoint(TOKENS), timeout=self._timeout)
 
         return self.json(resp)
 
@@ -690,7 +689,7 @@ class Zmon:
         :return: One-time token.
         :retype: str
         """
-        resp = self.session.post(self.endpoint(TOKENS), json={})
+        resp = self.session.post(self.endpoint(TOKENS), json={}, timeout=self._timeout)
 
         resp.raise_for_status()
 
@@ -711,7 +710,7 @@ class Zmon:
         :return: Grafana dashboard dict.
         :rtype: dict
         """
-        resp = self.session.get(self.endpoint(GRAFANA, grafana_dashboard_id))
+        resp = self.session.get(self.endpoint(GRAFANA, grafana_dashboard_id), timeout=self._timeout)
 
         return self.json(resp)
 
@@ -733,7 +732,7 @@ class Zmon:
         elif 'title' not in grafana_dashboard['dashboard']:
             raise ZmonArgumentError('Grafana dashboard must have "title"')
 
-        resp = self.session.post(self.endpoint(GRAFANA), json=grafana_dashboard)
+        resp = self.session.post(self.endpoint(GRAFANA), json=grafana_dashboard, timeout=self._timeout)
 
         return self.json(resp)
 
@@ -771,7 +770,7 @@ class Zmon:
         if not downtime.get('start_time') or not downtime.get('end_time'):
             raise ZmonArgumentError('Downtime must specify "start_time" and "end_time"')
 
-        resp = self.session.post(self.endpoint(DOWNTIME), json=downtime)
+        resp = self.session.post(self.endpoint(DOWNTIME), json=downtime, timeout=self._timeout)
 
         return self.json(resp)
 
@@ -780,14 +779,14 @@ class Zmon:
 ########################################################################################################################
 
     @logged
-    def get_groups(self):
-        resp = self.session.get(self.endpoint(GROUPS))
+    def get_groups(self) -> dict:
+        resp = self.session.get(self.endpoint(GROUPS), timeout=self._timeout)
 
         return self.json(resp)
 
     @logged
-    def switch_active_user(self, group_name, user_name):
-        resp = self.session.delete(self.endpoint(GROUPS, group_name, 'active'))
+    def switch_active_user(self, group_name: str, user_name: str) -> bool:
+        resp = self.session.delete(self.endpoint(GROUPS, group_name, 'active'), timeout=self._timeout)
 
         if not resp.ok:
             logger.error('Failed to de-activate group: {}'.format(group_name))
@@ -795,7 +794,7 @@ class Zmon:
 
         logger.debug('Switching active user: {}'.format(user_name))
 
-        resp = self.session.put(self.endpoint(GROUPS, group_name, 'active', user_name))
+        resp = self.session.put(self.endpoint(GROUPS, group_name, 'active', user_name), timeout=self._timeout)
 
         if not resp.ok:
             logger.error('Failed to switch active user {}'.format(user_name))
@@ -804,40 +803,46 @@ class Zmon:
         return resp.text == '1'
 
     @logged
-    def add_member(self, group_name, user_name):
-        resp = self.session.put(self.endpoint(GROUPS, group_name, MEMBER, user_name))
+    def add_member(self, group_name: str, user_name: str) -> bool:
+        resp = self.session.put(self.endpoint(GROUPS, group_name, MEMBER, user_name), timeout=self._timeout)
 
         resp.raise_for_status
 
         return resp.text == '1'
 
     @logged
-    def remove_member(self, group_name, user_name):
-        resp = self.session.delete(self.endpoint(GROUPS, group_name, MEMBER, user_name))
+    def get_member(self, user_name: str) -> dict:
+        resp = self.session.get(self.endpoint(GROUPS, 'member', user_name), timeout=self._timeout)
+
+        return self.json(resp)
+
+    @logged
+    def remove_member(self, group_name: str, user_name: str) -> bool:
+        resp = self.session.delete(self.endpoint(GROUPS, group_name, MEMBER, user_name), timeout=self._timeout)
 
         resp.raise_for_status()
 
         return resp.text == '1'
 
     @logged
-    def add_phone(self, member_email, phone_nr):
-        resp = self.session.put(self.endpoint(GROUPS, member_email, PHONE, phone_nr))
+    def add_phone(self, member_email: str, phone_nr: str) -> bool:
+        resp = self.session.put(self.endpoint(GROUPS, member_email, PHONE, phone_nr), timeout=self._timeout)
 
         resp.raise_for_status()
 
         return resp.text == '1'
 
     @logged
-    def remove_phone(self, member_email, phone_nr):
-        resp = self.session.delete(self.endpoint(GROUPS, member_email, PHONE, phone_nr))
+    def remove_phone(self, member_email: str, phone_nr: str) -> bool:
+        resp = self.session.delete(self.endpoint(GROUPS, member_email, PHONE, phone_nr), timeout=self._timeout)
 
         resp.raise_for_status()
 
         return resp.text == '1'
 
     @logged
-    def set_name(self, member_email, member_name):
-        resp = self.session.put(self.endpoint(GROUPS, member_email, PHONE, member_name))
+    def set_name(self, member_email: str, member_name: str) -> requests.Response:
+        resp = self.session.put(self.endpoint(GROUPS, member_email, PHONE, member_name), timeout=self._timeout)
 
         resp.raise_for_status()
 

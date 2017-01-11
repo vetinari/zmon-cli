@@ -7,6 +7,8 @@ import click
 
 from clickclick import AliasedGroup, Action, action, ok
 
+from easydict import EasyDict
+
 from zmon_cli.cmds.command import cli, get_client, output_option, yaml_output_option, pretty_json
 from zmon_cli.output import render_entities, Output, log_http_exception
 
@@ -21,7 +23,7 @@ from zmon_cli.client import ZmonArgumentError
 @click.pass_context
 @output_option
 @pretty_json
-def entities(ctx, output, pretty):
+def entities(ctx: click.Context, output: str, pretty: bool) -> None:
     """Manage entities"""
     if not ctx.invoked_subcommand:
         client = get_client(ctx.obj.config)
@@ -36,7 +38,7 @@ def entities(ctx, output, pretty):
 @click.pass_obj
 @yaml_output_option
 @pretty_json
-def get_entity(obj, entity_id, output, pretty):
+def get_entity(obj: EasyDict, entity_id: str, output: str, pretty: bool) -> None:
     """Get a single entity by ID"""
     client = get_client(obj.config)
 
@@ -51,7 +53,7 @@ def get_entity(obj, entity_id, output, pretty):
 @click.pass_obj
 @output_option
 @pretty_json
-def filter_entities(obj, key, value, output, pretty):
+def filter_entities(obj: EasyDict, key: str, value: str, output: str, pretty: bool) -> None:
     """List entities filtered by a certain key"""
     client = get_client(obj.config)
     with Output('Retrieving and filtering entities ...', nl=True, output=output, printer=render_entities,
@@ -63,7 +65,7 @@ def filter_entities(obj, key, value, output, pretty):
 @entities.command('push')
 @click.argument('entity')
 @click.pass_obj
-def push_entity(obj, entity):
+def push_entity(obj: EasyDict, entity: str):
     """Push one or more entities"""
     client = get_client(obj.config)
 
@@ -93,7 +95,7 @@ def push_entity(obj, entity):
 @entities.command('delete')
 @click.argument('entity_id')
 @click.pass_obj
-def delete_entity(obj, entity_id):
+def delete_entity(obj: EasyDict, entity_id: str):
     """Delete a single entity by ID"""
     client = get_client(obj.config)
 

@@ -4,6 +4,8 @@ import click
 
 from clickclick import AliasedGroup, Action, ok
 
+from easydict import EasyDict
+
 from zmon_cli.cmds.command import cli, get_client, yaml_output_option, pretty_json, output_option
 from zmon_cli.output import dump_yaml, Output, render_checks
 from zmon_cli.client import ZmonArgumentError
@@ -11,14 +13,14 @@ from zmon_cli.client import ZmonArgumentError
 
 @cli.group('check-definitions', cls=AliasedGroup)
 @click.pass_obj
-def check_definitions(obj):
+def check_definitions(obj: EasyDict) -> None:
     """Manage check definitions"""
     pass
 
 
 @check_definitions.command('init')
 @click.argument('yaml_file', type=click.File('wb'))
-def init(yaml_file):
+def init(yaml_file: click.File) -> None:
     """Initialize a new check definition YAML file"""
     # NOTE: sorted like FIELD_SORT_INDEX
     name = click.prompt('Check definition name', default='Example Check')
@@ -45,7 +47,7 @@ def init(yaml_file):
 @click.pass_obj
 @yaml_output_option
 @pretty_json
-def get_check_definition(obj, check_id, output, pretty):
+def get_check_definition(obj: EasyDict, check_id: int, output: str, pretty: bool) -> None:
     """Get a single check definition"""
     client = get_client(obj.config)
 
@@ -64,7 +66,7 @@ def get_check_definition(obj, check_id, output, pretty):
 @click.pass_obj
 @output_option
 @pretty_json
-def list_check_definitions(obj, output, pretty):
+def list_check_definitions(obj: EasyDict, output: str, pretty: bool) -> None:
     """List all active check definitions"""
     client = get_client(obj.config)
 
@@ -84,7 +86,7 @@ def list_check_definitions(obj, output, pretty):
 @click.pass_obj
 @output_option
 @pretty_json
-def filter_check_definitions(obj, field, value, output, pretty):
+def filter_check_definitions(obj: EasyDict, field: str, value: str, output: str, pretty: bool) -> None:
     """Filter active check definitions"""
     client = get_client(obj.config)
 
@@ -103,7 +105,7 @@ def filter_check_definitions(obj, field, value, output, pretty):
 @check_definitions.command('update')
 @click.argument('yaml_file', type=click.File('rb'))
 @click.pass_obj
-def update(obj, yaml_file):
+def update(obj: EasyDict, yaml_file: click.File) -> None:
     """Update a single check definition"""
     check = yaml.safe_load(yaml_file)
 
@@ -122,7 +124,7 @@ def update(obj, yaml_file):
 @check_definitions.command('delete')
 @click.argument('check_id', type=int)
 @click.pass_obj
-def delete_check_definition(obj, check_id):
+def delete_check_definition(obj: EasyDict, check_id) -> None:
     """Delete an orphan check definition"""
     client = get_client(obj.config)
 

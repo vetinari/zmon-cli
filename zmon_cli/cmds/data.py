@@ -1,5 +1,9 @@
 import click
 
+from typing import List, Optional
+
+from easydict import EasyDict
+
 from zmon_cli.cmds.command import cli, get_client, yaml_output_option, pretty_json
 from zmon_cli.output import Output
 
@@ -10,7 +14,7 @@ from zmon_cli.output import Output
 @click.pass_obj
 @yaml_output_option
 @pretty_json
-def data(obj, alert_id, entity_ids, output, pretty):
+def data(obj: EasyDict, alert_id: str, entity_ids: Optional[List[str]], output: str, pretty: bool):
     """Get check data for alert and entities"""
     client = get_client(obj.config)
 

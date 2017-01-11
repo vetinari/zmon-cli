@@ -4,13 +4,15 @@ import click
 
 from clickclick import AliasedGroup, Action, ok
 
+from easydict import EasyDict
+
 from zmon_cli.cmds.command import cli, get_client, yaml_output_option, pretty_json
 from zmon_cli.output import dump_yaml, Output
 
 
 @cli.group('dashboard', cls=AliasedGroup)
 @click.pass_obj
-def dashboard(obj):
+def dashboard(obj: EasyDict) -> None:
     """Manage ZMON dashboards"""
     pass
 
@@ -18,7 +20,7 @@ def dashboard(obj):
 @dashboard.command('init')
 @click.argument('yaml_file', type=click.File('wb'))
 @click.pass_obj
-def init(obj, yaml_file):
+def init(obj: EasyDict, yaml_file: click.File) -> None:
     """Initialize a new dashboard YAML file"""
     name = click.prompt('Dashboard name', default='Example dashboard')
     alert_teams = click.prompt('Alert Teams (comma separated)', default='Team1, Team2')
@@ -45,7 +47,7 @@ def init(obj, yaml_file):
 @click.pass_obj
 @yaml_output_option
 @pretty_json
-def dashboard_get(obj, dashboard_id, output, pretty):
+def dashboard_get(obj: EasyDict, dashboard_id: int, output: str, pretty: bool) -> None:
     """Get ZMON dashboard"""
     client = get_client(obj.config)
     with Output('Retrieving dashboard ...', nl=True, output=output, pretty_json=pretty) as act:
@@ -56,10 +58,11 @@ def dashboard_get(obj, dashboard_id, output, pretty):
 @dashboard.command('update')
 @click.argument('yaml_file', type=click.Path(exists=True))
 @click.pass_obj
-def dashboard_update(obj, yaml_file):
+def dashboard_update(obj: EasyDict, yaml_file: click.Path) -> None:
     """Create/Update a single ZMON dashboard"""
     client = get_client(obj.config)
-    dashboard = {}
+    dashboard = {}  # type: dict
+
     with open(yaml_file, 'rb') as f:
         dashboard = yaml.safe_load(f)
 

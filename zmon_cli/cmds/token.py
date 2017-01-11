@@ -3,6 +3,7 @@ from datetime import datetime
 import click
 
 from clickclick import AliasedGroup, Action, ok
+from easydict import EasyDict
 
 from zmon_cli.cmds.command import cli, get_client, yaml_output_option, pretty_json
 from zmon_cli.output import Output
@@ -14,14 +15,14 @@ from zmon_cli.output import Output
 
 @cli.group('onetime-tokens', cls=AliasedGroup)
 @click.pass_obj
-def tv_tokens(obj):
+def tv_tokens(obj: EasyDict):
     """Manage onetime tokens for Monitors/View only login"""
     pass
 
 
 @tv_tokens.command('get')
 @click.pass_obj
-def get_tv_token(obj):
+def get_tv_token(obj: EasyDict):
     """Retrieve a new token"""
     client = get_client(obj.config)
 
@@ -34,7 +35,7 @@ def get_tv_token(obj):
 @click.pass_obj
 @yaml_output_option
 @pretty_json
-def list_tv_token(obj, output, pretty):
+def list_tv_token(obj: EasyDict, output: str, pretty: bool):
     """List onetime tokens for your user"""
     client = get_client(obj.config)
 

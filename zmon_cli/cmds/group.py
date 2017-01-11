@@ -2,12 +2,14 @@ import click
 
 from clickclick import Action
 
+from easydict import EasyDict
+
 from zmon_cli.cmds.command import cli, get_client
 
 
 @cli.group(invoke_without_command=True)
 @click.pass_context
-def groups(ctx):
+def groups(ctx: click.Context) -> None:
     """Manage contact groups"""
     client = get_client(ctx.obj.config)
 
@@ -36,7 +38,7 @@ def groups(ctx):
 @click.argument('group_name')
 @click.argument('user_name')
 @click.pass_obj
-def switch_active(obj, group_name, user_name):
+def switch_active(obj: EasyDict, group_name: str, user_name: str) -> None:
     client = get_client(obj.config)
 
     with Action('Switching active user ...') as act:
@@ -47,7 +49,7 @@ def switch_active(obj, group_name, user_name):
 
 @cli.group()
 @click.pass_obj
-def members(obj):
+def members(obj) -> None:
     """Manage group membership"""
     pass
 
@@ -56,7 +58,7 @@ def members(obj):
 @click.argument('group_name')
 @click.argument('user_name')
 @click.pass_obj
-def member_add(obj, group_name, user_name):
+def member_add(obj: EasyDict, group_name: str, user_name: str) -> None:
     client = get_client(obj.config)
 
     with Action('Adding user ...') as act:
@@ -70,7 +72,7 @@ def member_add(obj, group_name, user_name):
 @click.argument('group_name')
 @click.argument('user_name')
 @click.pass_obj
-def member_remove(obj, group_name, user_name):
+def member_remove(obj: EasyDict, group_name: str, user_name: str) -> None:
     client = get_client(obj.config)
 
     with Action('Removing user ...') as act:
@@ -84,7 +86,7 @@ def member_remove(obj, group_name, user_name):
 @click.argument('member_email')
 @click.argument('phone_nr')
 @click.pass_obj
-def add_phone(obj, member_email, phone_nr):
+def add_phone(obj: EasyDict, member_email: str, phone_nr: str) -> None:
     client = get_client(obj.config)
 
     with Action('Adding phone ...') as act:
@@ -98,7 +100,7 @@ def add_phone(obj, member_email, phone_nr):
 @click.argument('member_email')
 @click.argument('phone_nr')
 @click.pass_obj
-def remove_phone(obj, member_email, phone_nr):
+def remove_phone(obj: EasyDict, member_email: str, phone_nr: str) -> None:
     client = get_client(obj.config)
 
     with Action('Removing phone number ...') as act:
@@ -112,7 +114,7 @@ def remove_phone(obj, member_email, phone_nr):
 @click.argument('member_email')
 @click.argument('member_name')
 @click.pass_obj
-def set_name(obj, member_email, member_name):
+def set_name(obj: EasyDict, member_email: str, member_name: str) -> None:
     client = get_client(obj.config)
 
     with Action('Changing user name ...'):

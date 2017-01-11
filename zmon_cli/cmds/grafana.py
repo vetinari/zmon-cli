@@ -1,8 +1,9 @@
 import yaml
-
 import click
 
 from clickclick import AliasedGroup, Action, ok
+
+from easydict import EasyDict
 
 from zmon_cli.cmds.command import cli, get_client, yaml_output_option, pretty_json
 from zmon_cli.output import Output
@@ -11,7 +12,7 @@ from zmon_cli.client import ZmonArgumentError
 
 @cli.group('grafana', cls=AliasedGroup)
 @click.pass_obj
-def grafana(obj):
+def grafana(obj: EasyDict) -> None:
     """Manage Grafana dashboards"""
     pass
 
@@ -21,7 +22,7 @@ def grafana(obj):
 @click.pass_obj
 @yaml_output_option
 @pretty_json
-def grafana_get(obj, dashboard_id, output, pretty):
+def grafana_get(obj: EasyDict, dashboard_id: str, output: str, pretty: bool) -> None:
     """Get ZMON grafana dashboard"""
     client = get_client(obj.config)
 
@@ -33,7 +34,7 @@ def grafana_get(obj, dashboard_id, output, pretty):
 @grafana.command('update')
 @click.argument('yaml_file', type=click.File('rb'))
 @click.pass_obj
-def grafana_update(obj, yaml_file):
+def grafana_update(obj: EasyDict, yaml_file: click.File) -> None:
     """Create/Update a single ZMON dashboard"""
     dashboard = yaml.safe_load(yaml_file)
 

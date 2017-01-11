@@ -1,6 +1,8 @@
 import os
 import logging
 
+from typing import Optional
+
 import yaml
 import click
 import clickclick
@@ -13,7 +15,7 @@ from clickclick import Action, error
 DEFAULT_CONFIG_FILE = '~/.zmon-cli.yaml'
 
 
-def configure_logging(loglevel):
+def configure_logging(loglevel: int) -> None:
     # configure file logger to not clutter stdout with log lines
     logging.basicConfig(level=loglevel, filename='/tmp/zmon-cli.log',
                         format='%(asctime)s %(levelname)s %(name)s: %(message)s')
@@ -21,9 +23,9 @@ def configure_logging(loglevel):
     logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARNING)
 
 
-def get_config_data(config_file=DEFAULT_CONFIG_FILE):
+def get_config_data(config_file: Optional[str]=DEFAULT_CONFIG_FILE) -> dict:
     fn = os.path.expanduser(config_file)
-    data = {}
+    data = {}  # type: dict
 
     try:
         if os.path.exists(fn):
@@ -47,7 +49,7 @@ def get_config_data(config_file=DEFAULT_CONFIG_FILE):
     return validate_config(data)
 
 
-def set_config_file(config_file, default_url):
+def set_config_file(config_file: str, default_url: str) -> None:
     while True:
         url = click.prompt('Please enter the ZMON base URL (e.g. https://demo.zmon.io)', default=default_url)
 
@@ -67,7 +69,7 @@ def set_config_file(config_file, default_url):
             yaml.safe_dump(data, fd, default_flow_style=False)
 
 
-def validate_config(data):
+def validate_config(data: dict) -> dict:
     """
     >>> validate_config({'url': 'foo', 'token': '123'})['url']
     'foo'

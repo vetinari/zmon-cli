@@ -1,5 +1,9 @@
 import click
 
+from typing import List
+
+from easydict import EasyDict
+
 from zmon_cli.cmds.command import cli, get_client, output_option, pretty_json
 from zmon_cli.output import Output, render_search
 
@@ -13,7 +17,7 @@ from zmon_cli.client import ZmonArgumentError
 @click.pass_obj
 @output_option
 @pretty_json
-def search(obj, search_query, team, output, pretty):
+def search(obj: EasyDict, search_query: str, team: List[str], output: str, pretty: bool):
     """
     Search dashboards, alerts, checks and grafana dashboards.
 

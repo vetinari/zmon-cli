@@ -2,7 +2,10 @@ import yaml
 
 import click
 
+from typing import List, Dict  # noqa
+
 from clickclick import AliasedGroup, Action, ok
+from easydict import EasyDict
 
 from zmon_cli.cmds.command import cli, get_client, yaml_output_option, output_option, pretty_json
 from zmon_cli.output import dump_yaml, Output, render_alerts
@@ -11,34 +14,34 @@ from zmon_cli.client import ZmonArgumentError
 
 @cli.group('alert-definitions', cls=AliasedGroup)
 @click.pass_obj
-def alert_definitions(obj):
+def alert_definitions(obj: EasyDict) -> None:
     """Manage alert definitions"""
     pass
 
 
 @alert_definitions.command('init')
 @click.argument('yaml_file', type=click.File('wb'))
-def init(yaml_file):
+def init(yaml_file: click.File) -> None:
     """Initialize a new alert definition YAML file"""
     name = click.prompt('Alert name', default='Example Alert')
     check_id = click.prompt('Check ID')
     team = click.prompt('(Responsible-) Team', default='Example Team')
 
     data = {
-        'check_definition_id': check_id,
+        'check_definition_id': check_id,  # type: str
         'condition': '>100',
         'description': 'Example Alert Description',
-        'entities': [],
-        'entities_exclude': [],
+        'entities': [],  # type: List[dict]
+        'entities_exclude': [],  # type: List[dict]
         'id': '',
-        'name': name,
-        'parameters': {},
+        'name': name,  # type: str
+        'parameters': {},  # type: Dict[str, str]
         'parent_id': '',
         'priority': 2,
-        'responsible_team': team,
+        'responsible_team': team,  # type: str
         'status': 'ACTIVE',
-        'tags': [],
-        'team': team,
+        'tags': [],  # type: List[str]
+        'team': team,  # type: str
         'template': False,
     }
 
@@ -51,7 +54,7 @@ def init(yaml_file):
 @click.pass_obj
 @yaml_output_option
 @pretty_json
-def get_alert_definition(obj, alert_id, output, pretty):
+def get_alert_definition(obj: EasyDict, alert_id: int, output: str, pretty: bool) -> None:
     """Get a single alert definition"""
     client = get_client(obj.config)
 
@@ -70,7 +73,7 @@ def get_alert_definition(obj, alert_id, output, pretty):
 @click.pass_obj
 @output_option
 @pretty_json
-def list_alert_definitions(obj, output, pretty):
+def list_alert_definitions(obj: EasyDict, output: str, pretty: bool) -> None:
     """List all active alert definitions"""
     client = get_client(obj.config)
 
@@ -90,7 +93,7 @@ def list_alert_definitions(obj, output, pretty):
 @click.pass_obj
 @output_option
 @pretty_json
-def filter_alert_definitions(obj, field, value, output, pretty):
+def filter_alert_definitions(obj: EasyDict, field, value, output: str, pretty: bool) -> None:
     """Filter active alert definitions"""
     client = get_client(obj.config)
 
@@ -109,7 +112,7 @@ def filter_alert_definitions(obj, field, value, output, pretty):
 @alert_definitions.command('create')
 @click.argument('yaml_file', type=click.File('rb'))
 @click.pass_obj
-def create_alert_definition(obj, yaml_file):
+def create_alert_definition(obj: EasyDict, yaml_file) -> None:
     """Create a single alert definition"""
     client = get_client(obj.config)
 
@@ -128,7 +131,7 @@ def create_alert_definition(obj, yaml_file):
 @alert_definitions.command('update')
 @click.argument('yaml_file', type=click.File('rb'))
 @click.pass_obj
-def update_alert_definition(obj, yaml_file):
+def update_alert_definition(obj: EasyDict, yaml_file: click.File) -> None:
     """Update a single alert definition"""
     alert = yaml.safe_load(yaml_file)
 
@@ -147,7 +150,7 @@ def update_alert_definition(obj, yaml_file):
 @alert_definitions.command('delete')
 @click.argument('alert_id', type=int)
 @click.pass_obj
-def delete_alert_definition(obj, alert_id):
+def delete_alert_definition(obj: EasyDict, alert_id: int) -> None:
     """Delete a single alert definition"""
     client = get_client(obj.config)
 

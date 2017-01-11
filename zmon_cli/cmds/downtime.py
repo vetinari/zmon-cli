@@ -1,8 +1,12 @@
 import time
 
+from typing import List, Optional
+
 import click
 
 from clickclick import AliasedGroup
+
+from easydict import EasyDict
 
 from zmon_cli.cmds.command import cli, get_client, yaml_output_option, pretty_json
 from zmon_cli.output import Output
@@ -10,7 +14,7 @@ from zmon_cli.client import ZmonArgumentError
 
 
 @cli.group('downtimes', cls=AliasedGroup)
-def downtimes():
+def downtimes() -> None:
     """Manage downtimes"""
     pass
 
@@ -22,7 +26,8 @@ def downtimes():
 @click.pass_obj
 @yaml_output_option
 @pretty_json
-def create_downtime(obj, entity_ids, duration, comment, output, pretty):
+def create_downtime(
+        obj: EasyDict, entity_ids: Optional[List[str]], duration: int, comment: str, output: str, pretty: bool) -> None:
     """Create downtime for specified entities"""
     client = get_client(obj.config)
 

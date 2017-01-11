@@ -116,7 +116,7 @@ def test_zmon_status(monkeypatch):
 
     assert status == result
 
-    get.assert_called_with(zmon.endpoint(client.STATUS))
+    get.assert_called_with(zmon.endpoint(client.STATUS), timeout=10)
 
 
 @pytest.mark.parametrize('q,result', [(None, [{'id': 1}]), ({'type': 'dummy'}, [{'id': 2}])])
@@ -133,7 +133,7 @@ def test_zmon_get_entities(monkeypatch, q, result):
     assert res == result
 
     params = {'query': json.dumps(q)} if q else None
-    get.assert_called_with(zmon.endpoint(client.ENTITIES), params=params)
+    get.assert_called_with(zmon.endpoint(client.ENTITIES), params=params, timeout=10)
 
 
 def test_zmon_get_entity(monkeypatch):
@@ -149,7 +149,7 @@ def test_zmon_get_entity(monkeypatch):
 
     assert res == result
 
-    get.assert_called_with(zmon.endpoint(client.ENTITIES, 1, trailing_slash=False))
+    get.assert_called_with(zmon.endpoint(client.ENTITIES, 1, trailing_slash=False), timeout=10)
 
 
 @pytest.mark.parametrize('e,result', [
@@ -179,7 +179,7 @@ def test_zmon_add_entity(monkeypatch, e, result):
         r = zmon.add_entity(e)
         assert r.ok is True
 
-        put.assert_called_with(zmon.endpoint(client.ENTITIES, trailing_slash=False), json=e)
+        put.assert_called_with(zmon.endpoint(client.ENTITIES, trailing_slash=False), json=e, timeout=10)
 
 
 @pytest.mark.parametrize('result', ['1', '0'])
@@ -195,7 +195,7 @@ def test_zmon_delete_entity(monkeypatch, result):
 
     assert deleted is (result == '1')
 
-    delete.assert_called_with(zmon.endpoint(client.ENTITIES, 1))
+    delete.assert_called_with(zmon.endpoint(client.ENTITIES, 1), timeout=10)
 
 
 def test_zmon_get_dashboard(monkeypatch):
@@ -211,7 +211,7 @@ def test_zmon_get_dashboard(monkeypatch):
 
     assert res == result
 
-    get.assert_called_with(zmon.endpoint(client.DASHBOARD, 1))
+    get.assert_called_with(zmon.endpoint(client.DASHBOARD, 1), timeout=10)
 
 
 @pytest.mark.parametrize('d', [{'id': 1}, {'id': ''}])
@@ -228,7 +228,7 @@ def test_zmon_update_dashboard(monkeypatch, d):
     assert res == result
 
     url = zmon.endpoint(client.DASHBOARD, 1) if d['id'] else zmon.endpoint(client.DASHBOARD)
-    post.assert_called_with(url, json=d)
+    post.assert_called_with(url, json=d, timeout=10)
 
 
 @pytest.mark.parametrize('text,result', [('{"id": 1, "type": "dummy"}', {'id': 1, 'type': 'dummy'}), ('', HTTPError)])
@@ -252,7 +252,7 @@ def test_zmon_get_check_defintion(monkeypatch, text, result):
         with pytest.raises(result):
             zmon.get_check_definition(1)
 
-    get.assert_called_with(zmon.endpoint(client.CHECK_DEF, 1))
+    get.assert_called_with(zmon.endpoint(client.CHECK_DEF, 1), timeout=10)
 
 
 @pytest.mark.parametrize('resp,result', [
@@ -270,7 +270,7 @@ def test_zmon_get_check_defintions(monkeypatch, resp, result):
 
     assert res == result
 
-    get.assert_called_with(zmon.endpoint(client.ACTIVE_CHECK_DEF))
+    get.assert_called_with(zmon.endpoint(client.ACTIVE_CHECK_DEF), timeout=10)
 
 
 @pytest.mark.parametrize('c,result', [
@@ -304,7 +304,7 @@ def test_zmon_update_check_defintion(monkeypatch, c, result):
         check = zmon.update_check_definition(c)
         assert check == result
 
-        post.assert_called_with(zmon.endpoint(client.CHECK_DEF), json=c)
+        post.assert_called_with(zmon.endpoint(client.CHECK_DEF), json=c, timeout=10)
 
 
 @pytest.mark.parametrize('result', [True, False])
@@ -320,7 +320,7 @@ def test_zmon_delete_check_definition(monkeypatch, result):
 
     assert res.ok is result
 
-    delete.assert_called_with(zmon.endpoint(client.CHECK_DEF, 1))
+    delete.assert_called_with(zmon.endpoint(client.CHECK_DEF, 1), timeout=10)
 
 
 def test_zmon_get_alert_defintion(monkeypatch):
@@ -336,7 +336,7 @@ def test_zmon_get_alert_defintion(monkeypatch):
 
     assert check == result
 
-    get.assert_called_with(zmon.endpoint(client.ALERT_DEF, 1))
+    get.assert_called_with(zmon.endpoint(client.ALERT_DEF, 1), timeout=10)
 
 
 @pytest.mark.parametrize('resp,result', [
@@ -354,7 +354,7 @@ def test_zmon_get_alert_defintions(monkeypatch, resp, result):
 
     assert res == result
 
-    get.assert_called_with(zmon.endpoint(client.ACTIVE_ALERT_DEF))
+    get.assert_called_with(zmon.endpoint(client.ACTIVE_ALERT_DEF), timeout=10)
 
 
 @pytest.mark.parametrize('a,result', [
@@ -394,7 +394,7 @@ def test_zmon_create_alert_defintion(monkeypatch, a, result):
         check = zmon.create_alert_definition(a)
         assert check == result
 
-        post.assert_called_with(zmon.endpoint(client.ALERT_DEF), json=a)
+        post.assert_called_with(zmon.endpoint(client.ALERT_DEF), json=a, timeout=10)
 
 
 @pytest.mark.parametrize('a,result', [
@@ -438,7 +438,7 @@ def test_zmon_update_alert_defintion(monkeypatch, a, result):
         check = zmon.update_alert_definition(a)
         assert check == result
 
-        put.assert_called_with(zmon.endpoint(client.ALERT_DEF, a['id']), json=a)
+        put.assert_called_with(zmon.endpoint(client.ALERT_DEF, a['id']), json=a, timeout=10)
 
 
 def test_zmon_delete_alert_definition(monkeypatch):
@@ -454,7 +454,7 @@ def test_zmon_delete_alert_definition(monkeypatch):
 
     assert res == result
 
-    delete.assert_called_with(zmon.endpoint(client.ALERT_DEF, 1))
+    delete.assert_called_with(zmon.endpoint(client.ALERT_DEF, 1), timeout=10)
 
 
 def test_zmon_alert_data(monkeypatch):
@@ -470,7 +470,7 @@ def test_zmon_alert_data(monkeypatch):
 
     assert check == result
 
-    get.assert_called_with(zmon.endpoint(client.ALERT_DATA, 1, 'all-entities'))
+    get.assert_called_with(zmon.endpoint(client.ALERT_DATA, 1, 'all-entities'), timeout=10)
 
 
 def test_zmon_search(monkeypatch):
@@ -487,7 +487,7 @@ def test_zmon_search(monkeypatch):
 
     assert search == result
 
-    get.assert_called_with(zmon.endpoint(client.SEARCH), params={'query': q})
+    get.assert_called_with(zmon.endpoint(client.SEARCH), params={'query': q}, timeout=10)
 
 
 def test_zmon_search_team(monkeypatch):
@@ -505,7 +505,7 @@ def test_zmon_search_team(monkeypatch):
 
     assert search == result
 
-    get.assert_called_with(zmon.endpoint(client.SEARCH), params={'query': q, 'teams': 'team-1,team-2'})
+    get.assert_called_with(zmon.endpoint(client.SEARCH), params={'query': q, 'teams': 'team-1,team-2'}, timeout=10)
 
 
 def test_zmon_list_tokens(monkeypatch):
@@ -521,7 +521,7 @@ def test_zmon_list_tokens(monkeypatch):
 
     assert check == result
 
-    get.assert_called_with(zmon.endpoint(client.TOKENS))
+    get.assert_called_with(zmon.endpoint(client.TOKENS), timeout=10)
 
 
 def test_zmon_get_token(monkeypatch):
@@ -537,7 +537,7 @@ def test_zmon_get_token(monkeypatch):
 
     assert check == result
 
-    post.assert_called_with(zmon.endpoint(client.TOKENS), json={})
+    post.assert_called_with(zmon.endpoint(client.TOKENS), json={}, timeout=10)
 
 
 def test_zmon_get_grafana_dashboard(monkeypatch):
@@ -553,7 +553,7 @@ def test_zmon_get_grafana_dashboard(monkeypatch):
 
     assert check == result
 
-    get.assert_called_with(zmon.endpoint(client.GRAFANA, 1))
+    get.assert_called_with(zmon.endpoint(client.GRAFANA, 1), timeout=10)
 
 
 @pytest.mark.parametrize('g,result', [
@@ -589,7 +589,7 @@ def test_zmon_update_grafana_dashboard(monkeypatch, g, result):
         check = zmon.update_grafana_dashboard(g)
         assert check == result
 
-        post.assert_called_with(zmon.endpoint(client.GRAFANA), json=g)
+        post.assert_called_with(zmon.endpoint(client.GRAFANA), json=g, timeout=10)
 
 
 @pytest.mark.parametrize('d,result', [
@@ -633,7 +633,7 @@ def test_zmon_create_downtime(monkeypatch, d, result):
         check = zmon.create_downtime(d)
         assert check == result
 
-        post.assert_called_with(zmon.endpoint(client.DOWNTIME), json=d)
+        post.assert_called_with(zmon.endpoint(client.DOWNTIME), json=d, timeout=10)
 
 
 def test_zmon_get_groups(monkeypatch):
@@ -649,7 +649,7 @@ def test_zmon_get_groups(monkeypatch):
 
     assert check == result
 
-    get.assert_called_with(zmon.endpoint(client.GROUPS))
+    get.assert_called_with(zmon.endpoint(client.GROUPS), timeout=10)
 
 
 @pytest.mark.parametrize('success', [(True, True), (False, None), (True, False)])
@@ -679,9 +679,9 @@ def test_zmon_switch_active_user(monkeypatch, success):
         switched = zmon.switch_active_user('g', 'u')
         assert switched is True
 
-    delete.assert_called_with(zmon.endpoint(client.GROUPS, 'g', 'active'))
+    delete.assert_called_with(zmon.endpoint(client.GROUPS, 'g', 'active'), timeout=10)
     if del_success:
-        put.assert_called_with(zmon.endpoint(client.GROUPS, 'g', 'active', 'u'))
+        put.assert_called_with(zmon.endpoint(client.GROUPS, 'g', 'active', 'u'), timeout=10)
 
 
 def test_zmon_add_member(monkeypatch):
@@ -696,7 +696,22 @@ def test_zmon_add_member(monkeypatch):
 
     assert added is True
 
-    put.assert_called_with(zmon.endpoint(client.GROUPS, 'group', client.MEMBER, 'user1'))
+    put.assert_called_with(zmon.endpoint(client.GROUPS, 'group', client.MEMBER, 'user1'), timeout=10)
+
+
+def test_zmon_get_member(monkeypatch):
+    get = MagicMock()
+    get.return_value.json.return_value = {'name': 'user1', 'email': 'some-email@email.com', 'phones': ''}
+
+    monkeypatch.setattr('requests.Session.get', get)
+
+    zmon = Zmon(URL, token=TOKEN)
+
+    member = zmon.get_member('user1')
+
+    assert {'name': 'user1', 'email': 'some-email@email.com', 'phones': ''} == member
+
+    get.assert_called_with(zmon.endpoint(client.GROUPS, 'member', 'user1'), timeout=10)
 
 
 def test_zmon_remove_member(monkeypatch):
@@ -711,7 +726,7 @@ def test_zmon_remove_member(monkeypatch):
 
     assert deleted is True
 
-    delete.assert_called_with(zmon.endpoint(client.GROUPS, 'group', client.MEMBER, 'user1'))
+    delete.assert_called_with(zmon.endpoint(client.GROUPS, 'group', client.MEMBER, 'user1'), timeout=10)
 
 
 def test_zmon_add_phone(monkeypatch):
@@ -726,7 +741,7 @@ def test_zmon_add_phone(monkeypatch):
 
     assert added is True
 
-    put.assert_called_with(zmon.endpoint(client.GROUPS, 'user1@something', client.PHONE, '12345'))
+    put.assert_called_with(zmon.endpoint(client.GROUPS, 'user1@something', client.PHONE, '12345'), timeout=10)
 
 
 def test_zmon_remove_phone(monkeypatch):
@@ -741,7 +756,7 @@ def test_zmon_remove_phone(monkeypatch):
 
     assert deleted is True
 
-    delete.assert_called_with(zmon.endpoint(client.GROUPS, 'user1@something', client.PHONE, '12345'))
+    delete.assert_called_with(zmon.endpoint(client.GROUPS, 'user1@something', client.PHONE, '12345'), timeout=10)
 
 
 def test_zmon_set_name(monkeypatch):
@@ -754,4 +769,4 @@ def test_zmon_set_name(monkeypatch):
 
     zmon.add_phone('user1@something', 'user1')
 
-    put.assert_called_with(zmon.endpoint(client.GROUPS, 'user1@something', client.PHONE, 'user1'))
+    put.assert_called_with(zmon.endpoint(client.GROUPS, 'user1@something', client.PHONE, 'user1'), timeout=10)

@@ -1,19 +1,26 @@
 import json
 import time
 
+from typing import Optional, Callable, Union, List
+
 import yaml
 import calendar
+import requests
 
-from clickclick import print_table, OutputFormat, action, secho, error, ok, info
+from yaml import representer
 
+from clickclick import print_table, OutputFormat, action, secho, error, ok, info, Action
+
+
+PrinterDict = Callable[[dict, Optional[str]], None]
+PrinterList = Callable[[List[dict], Optional[str]], None]
 
 # fields to dump as literal blocks
 LITERAL_FIELDS = set(['command', 'condition', 'description'])
 
 # custom sorting of YAML fields (i.e. we are not using the default lexical YAML ordering)
 FIELD_ORDER = ['id', 'check_definition_id', 'type', 'name', 'team', 'owning_team', 'responsible_team', 'description',
-               'condition',
-               'command', 'interval', 'entities', 'entities_exclude', 'status', 'last_modified_by']
+               'condition', 'command', 'interval', 'entities', 'entities_exclude', 'status', 'last_modified_by']
 FIELD_SORT_INDEX = {k: chr(i) for i, k in enumerate(FIELD_ORDER)}
 
 LAST_MODIFIED_FMT = '%Y-%m-%d %H:%M:%S.%f'
@@ -27,23 +34,23 @@ class literal_unicode(str):
 class CustomDumper(yaml.Dumper):
     '''Custom dumper to sort mapping fields as we like'''
 
-    def represent_mapping(self, tag, mapping, flow_style=None):
+    def represent_mapping(self, tag: str, mapping: dict, flow_style: Optional[str]=None) -> representer.MappingNode:
         node = yaml.Dumper.represent_mapping(self, tag, mapping, flow_style)
         node.value = sorted(node.value, key=lambda x: FIELD_SORT_INDEX.get(x[0].value, x[0].value))
         return node
 
 
-def literal_unicode_representer(dumper, data):
+def literal_unicode_representer(dumper: yaml.Dumper, data: Union[list, dict]) -> representer.ScalarNode:
     node = dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
     return node
 
 
-def remove_trailing_whitespace(text: str):
+def remove_trailing_whitespace(text: str) -> str:
     '''Remove all trailing whitespace from all lines'''
     return '\n'.join([line.rstrip() for line in text.strip().split('\n')])
 
 
-def dump_yaml(data):
+def dump_yaml(data: Union[List[dict], dict]) -> str:
     if isinstance(data, dict):
         for key, val in data.items():
             if key in LITERAL_FIELDS:
@@ -56,7 +63,7 @@ def dump_yaml(data):
 yaml.add_representer(literal_unicode, literal_unicode_representer)
 
 
-def log_http_exception(e, act=None):
+def log_http_exception(e: requests.HTTPError, act: Optional[Action]=None) -> None:
     err = act.error if act else error
     try:
         err('HTTP error: {} - {}'.format(e.response.status_code, e.response.reason))
@@ -73,47 +80,48 @@ def log_http_exception(e, act=None):
 ########################################################################################################################
 class Output:
 
-    def __init__(self, msg, ok_msg=' OK', nl=False, output='text', pretty_json=False, printer=None,
-                 suppress_exception=False):
+    def __init__(self, msg: str, ok_msg: Optional[str]=' OK', nl: Optional[bool]=False, output: Optional[str]='text',
+                 pretty_json: Optional[bool]=False, printer: Optional[Union[PrinterDict, PrinterList]]=None,
+                 suppress_exception: Optional[bool]=False) -> None:
         self.msg = msg
         self.ok_msg = ok_msg
         self.output = output
         self.nl = nl
-        self.errors = []
+        self.errors = []  # type: List[str]
         self.printer = printer
         self.indent = 4 if pretty_json else None
         self._suppress_exception = suppress_exception
 
-    def __enter__(self):
+    def __enter__(self) -> 'Output':
         if self.output == 'text' and not self.printer:
             action(self.msg)
             if self.nl:
                 secho('')
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb) -> 'Output':
         if exc_type is None:
             if self.output == 'text' and not self.printer and not self.errors:
                 ok(self.ok_msg)
         elif not self._suppress_exception:
             error(' EXCEPTION OCCURRED: {}'.format(exc_val))
 
-    def error(self, msg, **kwargs):
+    def error(self, msg: str, **kwargs: Optional[str]) -> None:
         error(' {}'.format(msg), **kwargs)
         self.errors.append(msg)
 
-    def echo(self, out):
+    def echo(self, out: Union[dict, List[dict]]) -> None:
         if self.output == 'yaml':
             print(dump_yaml(out))
         elif self.output == 'json':
             print(json.dumps(out, indent=self.indent))
         elif self.printer:
-            self.printer(out, self.output)
+            self.printer(out, self.output)  # type: ignore
         else:
             print(out)
 
 
-def render_entities(entities, output):
+def render_entities(entities: List[dict], output: Optional[str]) -> None:
     rows = []
     for e in entities:
         row = e
@@ -125,7 +133,7 @@ def render_entities(entities, output):
             if k not in ('id', 'type'):
                 if k == 'last_modified':
                     row['last_modified_time'] = (
-                        calendar.timegm(time.strptime(row.pop('last_modified'), LAST_MODIFIED_FMT)))
+                        calendar.timegm(time.strptime(row.pop('last_modified'), LAST_MODIFIED_FMT)))  # type: ignore
                 else:
                     key_values.append('{}={}'.format(k, e[k]))
 
@@ -139,7 +147,7 @@ def render_entities(entities, output):
                     rows, titles={'last_modified_time': 'Modified'})
 
 
-def render_status(status, output=None):
+def render_status(status: dict, output: Optional[str]) -> None:
     secho('Alerts active: {}'.format(status.get('alerts_active')))
 
     info('Workers:')
@@ -161,13 +169,13 @@ def render_status(status, output=None):
     print_table(['name', 'size'], rows)
 
 
-def render_checks(checks, output=None):
+def render_checks(checks: List[dict], output: Optional[str]) -> None:
     rows = []
 
     for check in checks:
         row = check
 
-        row['last_modified_time'] = calendar.timegm(time.gmtime(row.pop('last_modified') / 1000))
+        row['last_modified_time'] = calendar.timegm(time.gmtime(row.pop('last_modified') / 1000))  # type: ignore
 
         row['name'] = row['name'][:60]
         row['owning_team'] = row['owning_team'][:60].replace('\n', '')
@@ -187,13 +195,13 @@ def render_checks(checks, output=None):
                 titles={'last_modified_time': 'Modified', 'last_modified_by': 'Modified by'}, styles=check_styles)
 
 
-def render_alerts(alerts, output=None):
+def render_alerts(alerts: List[dict], output: Optional[str]) -> None:
     rows = []
 
     for alert in alerts:
         row = alert
 
-        row['last_modified_time'] = calendar.timegm(time.gmtime(row.pop('last_modified') / 1000))
+        row['last_modified_time'] = calendar.timegm(time.gmtime(row.pop('last_modified') / 1000))  # type: ignore
 
         row['name'] = row['name'][:60]
         row['responsible_team'] = row['responsible_team'][:40].replace('\n', '')
@@ -229,9 +237,9 @@ def render_alerts(alerts, output=None):
     print_table(headers, rows, titles=titles, styles=check_styles)
 
 
-def render_search(search, output):
+def render_search(search: dict, output: Optional[str]) -> None:
 
-    def _print_table(title, rows):
+    def _print_table(title: str, rows: List[dict]) -> None:
         info(title)
         rows.sort(key=lambda x: x.get('title'))
         print_table(['id', 'title', 'team', 'link'], rows)
