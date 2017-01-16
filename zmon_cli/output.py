@@ -1,7 +1,8 @@
 import json
 import time
 
-from typing import Optional, Callable, Union, List
+from typing import Optional, Callable, Union, List, Dict, TypeVar, Generic
+from types import TracebackType
 
 import yaml
 import calendar
@@ -11,9 +12,7 @@ from yaml import representer
 
 from clickclick import print_table, OutputFormat, action, secho, error, ok, info, Action
 
-
-PrinterDict = Callable[[dict, Optional[str]], None]
-PrinterList = Callable[[List[dict], Optional[str]], None]
+T = TypeVar('T', List[Dict], Dict)
 
 # fields to dump as literal blocks
 LITERAL_FIELDS = set(['command', 'condition', 'description'])
@@ -78,19 +77,19 @@ def log_http_exception(e: requests.HTTPError, act: Optional[Action]=None) -> Non
 ########################################################################################################################
 # RENDERERS
 ########################################################################################################################
-class Output:
+class Output(Generic[T]):
 
     def __init__(self, msg: str, ok_msg: Optional[str]=' OK', nl: Optional[bool]=False, output: Optional[str]='text',
-                 pretty_json: Optional[bool]=False, printer: Optional[Union[PrinterDict, PrinterList]]=None,
+                 pretty_json: Optional[bool]=False, printer: Optional[Callable[[T, Optional[str]], None]]=None,
                  suppress_exception: Optional[bool]=False) -> None:
-        self.msg = msg
-        self.ok_msg = ok_msg
-        self.output = output
-        self.nl = nl
+        self.msg = msg  # type: str
+        self.ok_msg = ok_msg  # type: str
+        self.output = output  # type: str
+        self.nl = nl  # type: bool
         self.errors = []  # type: List[str]
-        self.printer = printer
-        self.indent = 4 if pretty_json else None
-        self._suppress_exception = suppress_exception
+        self.printer = printer  # type: Optional[Callable[[T, Optional[str]], None]]
+        self.indent = 4 if pretty_json else None  # type: Optional[int]
+        self._suppress_exception = suppress_exception  # type: bool
 
     def __enter__(self) -> 'Output':
         if self.output == 'text' and not self.printer:
@@ -99,7 +98,8 @@ class Output:
                 secho('')
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> 'Output':
+    def __exit__(
+            self, exc_type: Optional[type], exc_val: Optional[Exception], exc_tb: Optional[TracebackType]) -> 'Output':
         if exc_type is None:
             if self.output == 'text' and not self.printer and not self.errors:
                 ok(self.ok_msg)
@@ -110,18 +110,18 @@ class Output:
         error(' {}'.format(msg), **kwargs)
         self.errors.append(msg)
 
-    def echo(self, out: Union[dict, List[dict]]) -> None:
+    def echo(self, out: T) -> None:
         if self.output == 'yaml':
             print(dump_yaml(out))
         elif self.output == 'json':
             print(json.dumps(out, indent=self.indent))
         elif self.printer:
-            self.printer(out, self.output)  # type: ignore
+            self.printer(out, self.output)
         else:
             print(out)
 
 
-def render_entities(entities: List[dict], output: Optional[str]) -> None:
+def render_entities(entities: List[Dict], output: Optional[str]) -> None:
     rows = []
     for e in entities:
         row = e
@@ -147,7 +147,7 @@ def render_entities(entities: List[dict], output: Optional[str]) -> None:
                     rows, titles={'last_modified_time': 'Modified'})
 
 
-def render_status(status: dict, output: Optional[str]) -> None:
+def render_status(status: Dict, output: Optional[str]) -> None:
     secho('Alerts active: {}'.format(status.get('alerts_active')))
 
     info('Workers:')
@@ -169,7 +169,7 @@ def render_status(status: dict, output: Optional[str]) -> None:
     print_table(['name', 'size'], rows)
 
 
-def render_checks(checks: List[dict], output: Optional[str]) -> None:
+def render_checks(checks: List[Dict], output: Optional[str]) -> None:
     rows = []
 
     for check in checks:
@@ -195,7 +195,7 @@ def render_checks(checks: List[dict], output: Optional[str]) -> None:
                 titles={'last_modified_time': 'Modified', 'last_modified_by': 'Modified by'}, styles=check_styles)
 
 
-def render_alerts(alerts: List[dict], output: Optional[str]) -> None:
+def render_alerts(alerts: List[Dict], output: Optional[str]) -> None:
     rows = []
 
     for alert in alerts:
@@ -237,7 +237,7 @@ def render_alerts(alerts: List[dict], output: Optional[str]) -> None:
     print_table(headers, rows, titles=titles, styles=check_styles)
 
 
-def render_search(search: dict, output: Optional[str]) -> None:
+def render_search(search: Dict, output: Optional[str]) -> None:
 
     def _print_table(title: str, rows: List[dict]) -> None:
         info(title)
