@@ -67,7 +67,7 @@ def push_entity(obj, entity):
     """Push one or more entities"""
     client = get_client(obj.config)
 
-    if (entity.endswith('.json') or entity.endswith('.yaml')) and os.path.exists(entity):
+    if os.path.exists(entity):
         with open(entity, 'rb') as fd:
             data = yaml.safe_load(fd)
     else:
