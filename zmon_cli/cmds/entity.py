@@ -19,9 +19,7 @@ from zmon_cli.client import ZmonArgumentError
 
 @cli.group('entities', cls=AliasedGroup, invoke_without_command=True)
 @click.pass_context
-@output_option
-@pretty_json
-def entities(ctx, output, pretty):
+def entities(ctx):
     """Manage entities"""
     if not ctx.invoked_subcommand:
         client = get_client(ctx.obj.config)
