@@ -75,7 +75,8 @@ def push_entity(obj, entity):
         try:
             data = json.loads(entity)
         except Exception as e:
-            sys.stderr.write("Tries to parse `{}` as json because it is not an existing file and failed: {}\n".format(entity, str(e)))
+            msg = "Tried to parse `{}` as json because it is not an existing file and failed: {}\n"
+            sys.stderr.write(msg.format(entity, str(e)))
             sys.exit(1)
 
     if not isinstance(data, list):
