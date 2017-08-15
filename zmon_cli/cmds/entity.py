@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import yaml
 
@@ -71,7 +72,11 @@ def push_entity(obj, entity):
         with open(entity, 'rb') as fd:
             data = yaml.safe_load(fd)
     else:
-        data = json.loads(entity)
+        try:
+            data = json.loads(entity)
+        except Exception as e:
+            sys.stderr.write("Tries to parse `{}` as json because it is not an existing file and failed: {}\n".format(entity, str(e)))
+            sys.exit(1)
 
     if not isinstance(data, list):
         data = [data]
