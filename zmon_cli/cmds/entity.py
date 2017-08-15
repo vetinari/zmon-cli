@@ -67,11 +67,20 @@ def push_entity(obj, entity):
     """Push one or more entities"""
     client = get_client(obj.config)
 
+    data = []
     if os.path.exists(entity):
-        with open(entity, 'rb') as fd:
-            data = yaml.safe_load(fd)
+        with Action('Trying to parse file...', nl=True) as act:
+            try:
+                with open(entity, 'rb') as fd:
+                    data = yaml.safe_load(fd)
+            except Exception as e:
+                act.fatal_error('Failed to load file: {}'.format(e))
     else:
-        data = json.loads(entity)
+        with Action('Trying to parse argument as JSON...', nl=True) as act:
+            try:
+                data = json.loads(entity)
+            except Exception as e:
+                act.fatal_error('Failed to parse as json: {}'.format(e))
 
     if not isinstance(data, list):
         data = [data]
