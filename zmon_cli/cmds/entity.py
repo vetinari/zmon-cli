@@ -62,11 +62,16 @@ def filter_entities(obj, key, value, output, pretty, extra):
                 pretty_json=pretty) as act:
         entities = client.get_entities(query={key: value})
         filtered = []
-        for k in sub_filter:
-            v = sub_filter[k]
-            for e in entities:
+        for e in entities:
+            matches = 0
+            for k in sub_filter:
+                v = sub_filter[k]
                 if k in e and v in e[k]:
-                    filtered.append(e)
+                    matches += 1
+            if len(sub_filter) == matches:
+                filtered.append(e)
+
+        if len(sub_filter) > 0:
             entities = filtered
         act.echo(entities)
 
