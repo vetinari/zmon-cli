@@ -46,17 +46,28 @@ def get_entity(obj, entity_id, output, pretty):
 
 
 @entities.command('filter')
-@click.argument('key')
-@click.argument('value')
+@click.argument('key', nargs=1)
+@click.argument('value', nargs=1)
+@click.argument('extra', nargs=-1)
 @click.pass_obj
 @output_option
 @pretty_json
-def filter_entities(obj, key, value, output, pretty):
+def filter_entities(obj, key, value, output, pretty, extra):
     """List entities filtered by a certain key"""
     client = get_client(obj.config)
+    if len(extra) % 2 == 1:
+        raise ValueError("invalid number of arguments")
+    sub_filter = dict(zip(extra[0::2], extra[1::2]))
     with Output('Retrieving and filtering entities ...', nl=True, output=output, printer=render_entities,
                 pretty_json=pretty) as act:
         entities = client.get_entities(query={key: value})
+        filtered = []
+        for k in sub_filter:
+            v = sub_filter[k]
+            for e in entities:
+                if k in e and v in e[k]:
+                    filtered.append(e)
+            entities = filtered
         act.echo(entities)
 
 
