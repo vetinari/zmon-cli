@@ -66,7 +66,7 @@ def filter_entities(obj, key, value, output, pretty, extra):
             matches = 0
             for k in sub_filter:
                 v = sub_filter[k]
-                if k in e and v in e[k]:
+                if k in e and v == e[k]:
                     matches += 1
             if len(sub_filter) == matches:
                 filtered.append(e)
