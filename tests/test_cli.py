@@ -315,3 +315,63 @@ def test_search(monkeypatch):
         assert 'Checks:' in result.output
         assert 'Dashboards:' in result.output
         assert 'Grafana Dashboards:' in result.output
+
+
+def test_filter_entity_definitions(monkeypatch):
+    get = MagicMock()
+    get.return_value = [
+        {
+            'id': 'entity-1', 'application_id': 'application-1', 'name': 'application',
+            'infrastructure_account': 'aws:12345678', 'type': 'instance',
+        },
+        {
+            'id': 'entity-2', 'application_id': 'application-2', 'name': 'other',
+            'infrastructure_account': 'aws:12345678', 'type': 'instance',
+        },
+        {
+            'id': 'entity-3', 'application_id': 'application-1', 'name': 'application',
+            'infrastructure_account': 'aws:87654321', 'type': 'instance',
+        },
+        {
+            'id': 'entity-4', 'application_id': 'application-1', 'name': 'application',
+            'infrastructure_account': 'aws:87654321', 'type': 'instance',
+        },
+    ]
+
+    monkeypatch.setattr('zmon_cli.client.Zmon.get_entities', get)
+    monkeypatch.setattr('zmon_cli.cmds.entity.filter_entities', get_client)
+
+    runner = CliRunner()
+
+    with runner.isolated_filesystem():
+        with open('test.yaml', 'w') as fd:
+            yaml.dump({'url': 'foo', 'token': 123}, fd)
+        args = ['-c', 'test.yaml', 'entities', 'filter', 'type', 'instance',
+                'infrastructure_account', 'aws:12345678', 'name', 'application']
+        result = runner.invoke(cli, args, catch_exceptions=False)
+
+        out = result.output.rstrip()
+        import sys
+        sys.stderr.write(out + "\n")
+
+        assert 'entity-1' in out
+        assert 'name' in out
+        assert 'application' in out
+        assert 'infrastructure_account' in out
+        assert 'aws:12345678' in out
+
+        assert 'entity-2' not in out
+        assert 'entity-3' not in out
+        assert 'entity-4' not in out
+        assert 'aws:87654321' not in out
+
+        args = ['-c', 'test.yaml', 'entities', 'filter', 'infrastructure_account', 'aws:12345678']
+        result = runner.invoke(cli, args, catch_exceptions=False)
+        out = result.output.rstrip()
+
+        assert 'entity-1' in out
+        assert 'entity-2' in out
+        assert 'name' in out
+        assert 'application' in out
+        assert 'infrastructure_account' in out
+        assert 'aws:12345678' in out
